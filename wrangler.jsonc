@@ -15,8 +15,9 @@
     {
       "binding": "DB",
       "database_name": "yurd-votes",
-      "database_id": "CREATE_D1_DATABASE_FIRST",
+      "database_id": "35d7bc65-a3c1-48e8-bcef-2eae72dc22a7",
       "migrations_dir": "migrations"
     }
   ]
 }
+
