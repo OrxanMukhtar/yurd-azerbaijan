@@ -13,7 +13,8 @@ function randomHex(size = 32) { const bytes = crypto.getRandomValues(new Uint8Ar
 async function digest(value) { return hex(await crypto.subtle.digest('SHA-256', encoder.encode(value))); }
 async function passwordHash(password, salt) {
   const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: encoder.encode(salt), iterations: 210000, hash: 'SHA-256' }, key, 256);
+  // Cloudflare Workers caps PBKDF2 at 100,000 iterations per operation.
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: encoder.encode(salt), iterations: 100000, hash: 'SHA-256' }, key, 256);
   return hex(bits);
 }
 function constantTimeEqual(a, b) { if (a.length !== b.length) return false; let diff = 0; for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i); return diff === 0; }
@@ -45,33 +46,23 @@ async function allowAuth(request, env) {
   return Number(row.attempt_count) <= 10;
 }
 async function authenticate(request, env, districts, register) {
-  let stage = 'rate_limit';
-  try {
   if (!await allowAuth(request, env)) return json({ error: 'Çox cəhd edildi. Bir az sonra yenidən yoxlayın.' }, 429);
-  stage = 'parse_body';
   let body; try { body = await parseBody(request); } catch { return json({ error: 'Sorğu formatı düzgün deyil.' }, 400); }
-  stage = 'validate_credentials';
   const username = String(body.username || '').trim().normalize('NFKC');
   const password = body.password;
   if (!/^[\p{L}\p{N}_.-]{3,24}$/u.test(username) || typeof password !== 'string' || password.length < 8 || password.length > 200) return json({ error: 'İstifadəçi adı 3–24 simvol, şifrə isə ən azı 8 simvol olmalıdır.' }, 400);
-  stage = 'normalize_username';
   const usernameKey = username.toLocaleLowerCase('az');
-  stage = 'lookup_user';
   let user = await env.DB.prepare('SELECT * FROM users WHERE username_key=?').bind(usernameKey).first();
   if (register) {
     if (user) return json({ error: 'Bu istifadəçi adı artıq qeydiyyatdadır.' }, 409);
-    stage = 'hash_password';
     const salt = randomHex(16), hash = await passwordHash(password, salt), id = crypto.randomUUID(), now = Date.now();
-    stage = 'insert_user';
     await env.DB.prepare('INSERT INTO users(id,username_key,username,password_salt,password_hash,created_at) VALUES(?,?,?,?,?,?)').bind(id, usernameKey, username, salt, hash, now).run();
     user = { id, username, vote: null };
   } else {
     const salt = user?.password_salt || 'yurd-login-dummy-salt';
-    stage = 'hash_password';
     const supplied = await passwordHash(password, salt);
     if (!user || !constantTimeEqual(supplied, user.password_hash)) return json({ error: 'İstifadəçi adı və ya şifrə yanlışdır.' }, 401);
   }
-  stage = 'create_session';
   const token = randomHex(), expires = Date.now() + SESSION_MS;
   await env.DB.batch([
     env.DB.prepare('DELETE FROM sessions WHERE expires_at<?').bind(Date.now()),
@@ -79,13 +70,8 @@ async function authenticate(request, env, districts, register) {
     env.DB.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)').bind(await digest(token), user.id, expires)
   ]);
   user = await env.DB.prepare('SELECT id,username,vote FROM users WHERE id=?').bind(user.id).first();
-  stage = 'count_votes';
   const counts = await voteCounts(env, districts);
   return json({ user: publicUser(user), counts }, 200, { 'Set-Cookie': cookie(token) });
-  } catch (error) {
-    console.error('Yurd auth failure:', JSON.stringify({ stage, error: error instanceof Error ? error.name : 'UnknownError' }));
-    throw error;
-  }
 }
 async function handleApi(request, env) {
   const url = new URL(request.url), districts = await districtsFor(request, env);
