@@ -100,7 +100,7 @@ export default {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/')) {
       try { return await handleApi(request, env); }
-      catch (error) { return json({ error: 'Server sorğusu tamamlanmadı.' }, 500); }
+      catch (error) { console.error('Yurd API error:', error instanceof Error ? error.message : String(error)); return json({ error: 'Server sorğusu tamamlanmadı.' }, 500); }
     }
     return env.ASSETS.fetch(request);
   }
