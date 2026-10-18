@@ -1,0 +1,11 @@
+{
+  "name": "yurd-districts-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hesab əsaslı rayon reytinqi MVP-si",
+  "scripts": {
+    "start": "node server.mjs",
+    "deploy": "npx wrangler deploy",
+    "dev:cloudflare": "npx wrangler dev"
+  }
+}
