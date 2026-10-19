@@ -2,14 +2,24 @@
   {
     "id": "rayon-kesfi",
     "title": "Rayonu tanı",
-    "description": "İqtisadi rayonlara görə 5 sürətli sual. Hər düzgün cavab 20 xal gətirir.",
+    "description": "15 suallıq bazadan asandan çətinə doğru 5 sual. Hər düzgün cavab 20 xal gətirir.",
     "durationLabel": "2 dəqiqə",
     "questions": [
-      {"id":"q1","prompt":"Şəki-Zaqatala iqtisadi rayonunda yerləşən şəhər hansıdır?","options":["Şəki","Şirvan","Bakı","Naftalan"],"answer":0,"explanation":"Şəki bu iqtisadi rayonun şəhər vahididir."},
-      {"id":"q2","prompt":"Naxçıvan iqtisadi rayonuna daxil olan rayon hansıdır?","options":["Astara","Qax","Babək","Tovuz"],"answer":2,"explanation":"Babək Naxçıvan iqtisadi rayonuna daxildir."},
-      {"id":"q3","prompt":"Quba-Xaçmaz iqtisadi rayonunda yerləşən rayon hansıdır?","options":["Qusar","Ucar","Lerik","Ağsu"],"answer":0,"explanation":"Qusar Quba-Xaçmaz iqtisadi rayonunun rayonlarından biridir."},
-      {"id":"q4","prompt":"Lənkəran-Astara iqtisadi rayonunda olan rayon hansıdır?","options":["Gədəbəy","Masallı","Şabran","Kürdəmir"],"answer":1,"explanation":"Masallı Lənkəran-Astara iqtisadi rayonuna daxildir."},
-      {"id":"q5","prompt":"Şərqi Zəngəzur iqtisadi rayonuna daxil olan rayon hansıdır?","options":["Qəbələ","Biləsuvar","Zəngilan","Göyçay"],"answer":2,"explanation":"Zəngilan Şərqi Zəngəzur iqtisadi rayonuna daxildir."}
+      {"id":"q1","difficulty":1,"prompt":"Şəki-Zaqatala iqtisadi rayonunda yerləşən şəhər hansıdır?","options":["Şəki","Şirvan","Bakı","Naftalan"],"answer":0,"explanation":"Şəki Şəki-Zaqatala iqtisadi rayonuna daxildir."},
+      {"id":"q2","difficulty":1,"prompt":"Naxçıvan iqtisadi rayonuna daxil olan rayon hansıdır?","options":["Astara","Qax","Babək","Tovuz"],"answer":2,"explanation":"Babək Naxçıvan iqtisadi rayonunun rayonlarından biridir."},
+      {"id":"q3","difficulty":1,"prompt":"Quba-Xaçmaz iqtisadi rayonunda yerləşən rayon hansıdır?","options":["Qusar","Ucar","Lerik","Ağsu"],"answer":0,"explanation":"Qusar Quba-Xaçmaz iqtisadi rayonuna daxildir."},
+      {"id":"q4","difficulty":1,"prompt":"Lənkəran-Astara iqtisadi rayonuna daxil olan rayon hansıdır?","options":["Gədəbəy","Masallı","Şabran","Kürdəmir"],"answer":1,"explanation":"Masallı Lənkəran-Astara iqtisadi rayonunun rayonlarından biridir."},
+      {"id":"q5","difficulty":1,"prompt":"Şərqi Zəngəzur iqtisadi rayonuna daxil olan rayon hansıdır?","options":["Qəbələ","Biləsuvar","Zəngilan","Göyçay"],"answer":2,"explanation":"Zəngilan Şərqi Zəngəzur iqtisadi rayonuna daxildir."},
+      {"id":"q6","difficulty":2,"prompt":"Qazax-Tovuz iqtisadi rayonuna daxil olan rayon hansıdır?","options":["Qazax","Qusar","Qubadlı","Şamaxı"],"answer":0,"explanation":"Qazax Qazax-Tovuz iqtisadi rayonunun rayonlarından biridir."},
+      {"id":"q7","difficulty":2,"prompt":"Dağlıq-Şirvan iqtisadi rayonunda yerləşən rayon hansıdır?","options":["İsmayıllı","Salyan","Xızı","Culfa"],"answer":0,"explanation":"İsmayıllı Dağlıq-Şirvan iqtisadi rayonuna daxildir."},
+      {"id":"q8","difficulty":2,"prompt":"Mil-Muğan iqtisadi rayonuna daxil olan rayon hansıdır?","options":["İmişli","Qəbələ","Şəmkir","Lerik"],"answer":0,"explanation":"İmişli Mil-Muğan iqtisadi rayonunun rayonlarından biridir."},
+      {"id":"q9","difficulty":2,"prompt":"Abşeron-Xızı iqtisadi rayonuna daxil olan rayon hansıdır?","options":["Xızı","Ağdaş","Kəlbəcər","Yardımlı"],"answer":0,"explanation":"Xızı Abşeron-Xızı iqtisadi rayonuna daxildir."},
+      {"id":"q10","difficulty":2,"prompt":"Şirvan-Salyan iqtisadi rayonunda yerləşən rayon hansıdır?","options":["Salyan","Şəki","Ağstafa","Ordubad"],"answer":0,"explanation":"Salyan Şirvan-Salyan iqtisadi rayonuna daxildir."},
+      {"id":"q11","difficulty":3,"prompt":"Hansı rayon Şəki-Zaqatala iqtisadi rayonuna daxildir?","options":["Balakən","Saatlı","Ağsu","Cəbrayıl"],"answer":0,"explanation":"Balakən Şəki-Zaqatala iqtisadi rayonunun rayonlarından biridir."},
+      {"id":"q12","difficulty":3,"prompt":"Hansı cütlük iqtisadi rayon baxımından tam uyğundur?","options":["Lerik — Lənkəran-Astara","Lerik — Quba-Xaçmaz","Lerik — Mil-Muğan","Lerik — Şərqi Zəngəzur"],"answer":0,"explanation":"Lerik Lənkəran-Astara iqtisadi rayonuna daxildir."},
+      {"id":"q13","difficulty":3,"prompt":"Hansı cütlük iqtisadi rayon baxımından tam uyğundur?","options":["Ağstafa — Qazax-Tovuz","Ağstafa — Qarabağ","Ağstafa — Bakı","Ağstafa — Mərkəzi Aran"],"answer":0,"explanation":"Ağstafa Qazax-Tovuz iqtisadi rayonunun rayonlarından biridir."},
+      {"id":"q14","difficulty":3,"prompt":"Hansı cütlük iqtisadi rayon baxımından tam uyğundur?","options":["Qubadlı — Şərqi Zəngəzur","Qubadlı — Şəki-Zaqatala","Qubadlı — Abşeron-Xızı","Qubadlı — Şirvan-Salyan"],"answer":0,"explanation":"Qubadlı Şərqi Zəngəzur iqtisadi rayonuna daxildir."},
+      {"id":"q15","difficulty":3,"prompt":"Hansı cütlük iqtisadi rayon baxımından tam uyğundur?","options":["Ağdaş — Mərkəzi Aran","Ağdaş — Lənkəran-Astara","Ağdaş — Dağlıq-Şirvan","Ağdaş — Naxçıvan"],"answer":0,"explanation":"Ağdaş Mərkəzi Aran iqtisadi rayonuna daxildir."}
     ]
   }
 ]

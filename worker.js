@@ -69,7 +69,7 @@ async function communityResponse(request, env) {
     env.DB.prepare('SELECT id,question,description,category,options_json,closes_at FROM polls WHERE is_active=1 ORDER BY created_at,id').all(),
     env.DB.prepare('SELECT poll_id,option_key,COUNT(*) AS n FROM poll_votes GROUP BY poll_id,option_key').all(),
     user ? env.DB.prepare('SELECT poll_id,option_key FROM poll_votes WHERE user_id=?').bind(user.id).all() : Promise.resolve({ results: [] }),
-    env.DB.prepare("SELECT p.id,p.district_id,p.topic,p.body,p.created_at,u.username,COUNT(c.id) AS comment_count FROM community_posts p JOIN users u ON u.id=p.user_id LEFT JOIN community_comments c ON c.post_id=p.id AND c.status='visible' WHERE p.status='visible' GROUP BY p.id ORDER BY p.created_at DESC LIMIT 30").all(),
+    env.DB.prepare("SELECT p.id,p.user_id,p.district_id,p.topic,p.body,p.created_at,u.username,COUNT(c.id) AS comment_count FROM community_posts p JOIN users u ON u.id=p.user_id LEFT JOIN community_comments c ON c.post_id=p.id AND c.status='visible' WHERE p.status='visible' GROUP BY p.id ORDER BY p.created_at DESC LIMIT 30").all(),
     env.DB.prepare('SELECT g.user_id,g.best_score,u.username FROM game_scores g JOIN users u ON u.id=g.user_id WHERE g.game_id=? AND g.week_key=? ORDER BY g.best_score DESC,g.updated_at ASC LIMIT 10').bind('rayon-kesfi', weekKey()).all(),
     user ? env.DB.prepare('SELECT game_id,best_score,attempts FROM game_scores WHERE user_id=? AND week_key=?').bind(user.id, weekKey()).all() : Promise.resolve({ results: [] })
   ]);
@@ -78,7 +78,7 @@ async function communityResponse(request, env) {
   const chosen = new Map(myVotes.results.map(row => [row.poll_id, row.option_key]));
   return json({
     polls: polls.results.map(poll => ({ id: poll.id, question: poll.question, description: poll.description, category: poll.category, options: JSON.parse(poll.options_json).map((label, i) => ({ key: String(i), label, votes: counts.get(`${poll.id}:${i}`) || 0 })), myVote: chosen.get(poll.id) ?? null, closesAt: poll.closes_at })),
-    posts: posts.results.map(row => ({ id: row.id, districtId: row.district_id, topic: row.topic, body: row.body, createdAt: row.created_at, username: row.username, commentCount: Number(row.comment_count) })),
+    posts: posts.results.map(row => ({ id: row.id, districtId: row.district_id, topic: row.topic, body: row.body, createdAt: row.created_at, username: row.username, commentCount: Number(row.comment_count), mine: user?.id === row.user_id })),
     leaderboard: scoreRows.results.map((row, i) => ({ rank: i + 1, username: row.username, score: Number(row.best_score), mine: user?.id === row.user_id })),
     myGameScore: Number(myScores.results.find(row => row.game_id === 'rayon-kesfi')?.best_score || 0),
     user: publicUser(user)
@@ -103,11 +103,11 @@ async function submitCommunityComment(request, env) {
   const post = await env.DB.prepare("SELECT id FROM community_posts WHERE id=? AND status='visible'").bind(postId).first();
   if (!post) return json({ error: 'Müzakirə artıq əlçatan deyil.' }, 404);
   await env.DB.prepare('INSERT INTO community_comments(id,post_id,user_id,body,created_at) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(), postId, user.id, text, Date.now()).run();
-  return json({ comments: await listComments(env, postId) });
+  return json({ comments: await listComments(env, postId, user) });
 }
-async function listComments(env, postId) {
-  const rows = await env.DB.prepare("SELECT c.id,c.body,c.created_at,u.username FROM community_comments c JOIN users u ON u.id=c.user_id WHERE c.post_id=? AND c.status='visible' ORDER BY c.created_at LIMIT 100").bind(postId).all();
-  return rows.results.map(row => ({ id: row.id, body: row.body, createdAt: row.created_at, username: row.username }));
+async function listComments(env, postId, user = null) {
+  const rows = await env.DB.prepare("SELECT c.id,c.user_id,c.body,c.created_at,u.username FROM community_comments c JOIN users u ON u.id=c.user_id WHERE c.post_id=? AND c.status='visible' ORDER BY c.created_at LIMIT 100").bind(postId).all();
+  return rows.results.map(row => ({ id: row.id, body: row.body, createdAt: row.created_at, username: row.username, mine: user?.id === row.user_id }));
 }
 async function reportCommunityContent(request, env) {
   const user = await userFor(request, env); if (!user) return json({ error: 'Şikayət etmək üçün hesaba daxil olun.' }, 401);
@@ -123,17 +123,29 @@ async function reportCommunityContent(request, env) {
   await env.DB.prepare(`UPDATE ${table} SET report_count=report_count+1,status=CASE WHEN report_count+1>=3 THEN 'hidden' ELSE status END WHERE id=?`).bind(targetId).run();
   return json({ ok: true, message: 'Şikayət qəbul edildi. Bir neçə müstəqil şikayətdən sonra məzmun müvəqqəti gizlənir.' });
 }
+async function deleteCommunityContent(request, env, type) {
+  const user = await userFor(request, env); if (!user) return json({ error: 'Məzmunu silmək üçün hesaba daxil olun.' }, 401);
+  let body; try { body = await parseBody(request); } catch { return json({ error: 'Sorğu formatı düzgün deyil.' }, 400); }
+  const isPost = type === 'post', table = isPost ? 'community_posts' : 'community_comments', id = String(isPost ? body.postId || '' : body.commentId || '');
+  if (!id || id.length > 80) return json({ error: 'Məzmun tapılmadı.' }, 400);
+  const owned = await env.DB.prepare(`SELECT id FROM ${table} WHERE id=? AND user_id=? AND status='visible'`).bind(id, user.id).first();
+  if (!owned) return json({ error: 'Bu məzmun tapılmadı və ya onu silmək hüququn yoxdur.' }, 404);
+  await env.DB.prepare(`UPDATE ${table} SET status='removed' WHERE id=? AND user_id=? AND status='visible'`).bind(id, user.id).run();
+  return json({ ok: true });
+}
 async function submitGame(request, env) {
   const user = await userFor(request, env); if (!user) return json({ error: 'Oyunda xal toplamaq üçün hesaba daxil olun.' }, 401);
   if (!await allowUserAction(env, user.id, 'game', 20)) return json({ error: 'Çox oyun cəhdi edildi. Bir az sonra yenidən yoxlayın.' }, 429);
   let body; try { body = await parseBody(request); } catch { return json({ error: 'Cavablar formatı düzgün deyil.' }, 400); }
-  const games = await gamesFor(request, env, true), game = games.find(item => item.id === body.gameId);
-  if (!game || !Array.isArray(body.answers) || body.answers.length !== game.questions.length || body.answers.some(answer => !Number.isInteger(answer) || answer < 0 || answer > 3)) return json({ error: 'Oyun cavabları düzgün deyil.' }, 400);
-  const score = game.questions.reduce((total, q, index) => total + (body.answers[index] === q.answer ? 20 : 0), 0), now = Date.now(), season = weekKey();
+  const games = await gamesFor(request, env, true), game = games.find(item => item.id === body.gameId), tiers = [1,1,2,2,3];
+  if (!game || !Array.isArray(body.questionIds) || body.questionIds.length !== tiers.length || new Set(body.questionIds).size !== tiers.length || !Array.isArray(body.answers) || body.answers.length !== tiers.length) return json({ error: 'Oyun cavabları düzgün deyil.' }, 400);
+  const questions = body.questionIds.map((id, index) => game.questions.find(q => q.id === id && q.difficulty === tiers[index]));
+  if (questions.some(question => !question) || body.answers.some((answer, index) => !Number.isInteger(answer) || answer < 0 || answer >= questions[index].options.length)) return json({ error: 'Sualların sırası və ya cavablar düzgün deyil.' }, 400);
+  const score = questions.reduce((total, q, index) => total + (body.answers[index] === q.answer ? 20 : 0), 0), now = Date.now(), season = weekKey();
   await env.DB.prepare('INSERT INTO game_scores(user_id,game_id,week_key,best_score,attempts,updated_at) VALUES(?,?,?,?,1,?) ON CONFLICT(user_id,game_id,week_key) DO UPDATE SET best_score=MAX(best_score,excluded.best_score),attempts=attempts+1,updated_at=excluded.updated_at').bind(user.id, game.id, season, score, now).run();
   const row = await env.DB.prepare('SELECT best_score,attempts FROM game_scores WHERE user_id=? AND game_id=? AND week_key=?').bind(user.id, game.id, season).first();
   const leaders = await env.DB.prepare('SELECT u.username,g.best_score FROM game_scores g JOIN users u ON u.id=g.user_id WHERE g.game_id=? AND g.week_key=? ORDER BY g.best_score DESC,g.updated_at ASC LIMIT 10').bind(game.id, season).all();
-  return json({ score, bestScore: Number(row.best_score), attempts: Number(row.attempts), explanations: game.questions.map(q => q.explanation), leaderboard: leaders.results.map((leader, i) => ({ rank: i + 1, username: leader.username, score: Number(leader.best_score), mine: leader.username === user.username })) });
+  return json({ score, bestScore: Number(row.best_score), attempts: Number(row.attempts), explanations: questions.map(q => q.explanation), leaderboard: leaders.results.map((leader, i) => ({ rank: i + 1, username: leader.username, score: Number(leader.best_score), mine: leader.username === user.username })) });
 }
 async function authenticate(request, env, districts, register) {
   if (!await allowAuth(request, env)) return json({ error: 'Çox cəhd edildi. Bir az sonra yenidən yoxlayın.' }, 429);
@@ -172,7 +184,7 @@ async function handleApi(request, env) {
   if (request.method === 'GET' && url.pathname === '/api/comments') {
     const postId = url.searchParams.get('postId') || '';
     if (!await env.DB.prepare("SELECT id FROM community_posts WHERE id=? AND status='visible'").bind(postId).first()) return json({ error: 'Müzakirə tapılmadı.' }, 404);
-    return json({ comments: await listComments(env, postId) });
+    return json({ comments: await listComments(env, postId, await userFor(request, env)) });
   }
   if (request.method === 'GET' && url.pathname === '/api/games') return json({ games: await gamesFor(request, env) });
   if (request.method === 'POST' && url.pathname === '/api/poll-vote') {
@@ -186,6 +198,8 @@ async function handleApi(request, env) {
   }
   if (request.method === 'POST' && url.pathname === '/api/post') return submitCommunityPost(request, env, districts);
   if (request.method === 'POST' && url.pathname === '/api/comment') return submitCommunityComment(request, env);
+  if (request.method === 'POST' && url.pathname === '/api/post-delete') return deleteCommunityContent(request, env, 'post');
+  if (request.method === 'POST' && url.pathname === '/api/comment-delete') return deleteCommunityContent(request, env, 'comment');
   if (request.method === 'POST' && url.pathname === '/api/report') return reportCommunityContent(request, env);
   if (request.method === 'POST' && url.pathname === '/api/game-submit') return submitGame(request, env);
   if (request.method === 'POST' && url.pathname === '/api/register') return authenticate(request, env, districts, true);
