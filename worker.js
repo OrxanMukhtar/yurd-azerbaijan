@@ -54,7 +54,7 @@ async function gamesFor(request, env, includeAnswers = false) {
   const response = await env.ASSETS.fetch(new Request(new URL('/games.json', request.url)));
   if (!response.ok) throw new Error('Game data unavailable');
   const games = await response.json();
-  return includeAnswers ? games : games.map(game => ({ ...game, questions: game.questions.map(({ answer, ...question }) => question) }));
+  return includeAnswers ? games : games.map(game => ({ ...game, questions: game.questions.map(({ answer, explanation, ...question }) => question) }));
 }
 function weekKey(date = new Date()) {
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
