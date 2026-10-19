@@ -15,11 +15,11 @@ Hər hesabın bir aktiv rayon səsi var. Seçim sonradan dəyişdirilə və baş
 - Mövzu sorğularında hər hesab bir dəfə iştirak edir və seçimini dəyişə bilir.
 - Açıq müzakirələr sual, təklif və hekayə formatlarını, rayon etiketi və cavabları dəstəkləyir.
 - “Rayonu tanı” mini oyunu cavabları serverdə yoxlayır, həftəlik ən yaxşı xal və cədvəl göstərir. Oyun xalı rayon reytinqinə təsir etmir.
-- Mövzu, cavab və oyun cəhdlərinə hesab üzrə sürət limiti tətbiq olunur. Eyni məzmuna üç fərqli hesab şikayət göndərdikdə yazı müvəqqəti gizlənir.
+- Mövzu, cavab, oyun və şikayət cəhdlərinə hesab üzrə sürət limiti tətbiq olunur. Eyni məzmuna üç fərqli hesab şikayət göndərdikdə yazı gizlənir.
 
 ## Cloudflare Workers
 
 `worker.js` API-ni, `public/` sayt fayllarını, Cloudflare D1 isə hesab və icma məlumatlarını saxlayır. `migrations/0002_community.sql` sorğular, yazılar, cavablar, şikayətlər, sürət limitləri və oyun nəticələri üçün cədvəlləri yaradır. GitHub Actions main branch-ə push olduqda migration-ları tətbiq edib Worker-i deploy edir.
 
-Məzmun moderasiyası bu MVP-də icma şikayətlərinin sayına əsaslanan avtomatik müvəqqəti gizlətmədir; əl ilə baxış paneli hələ yoxdur. Hesab üçün e-poçt/SMS təsdiqi və parol bərpası da aktiv edilməyib. Cloudflare pulsuz planının kvotaları var və 24/7 SLA zəmanəti vermir.
+Məzmun moderasiyası bu MVP-də icma şikayətlərinin sayına əsaslanan avtomatik gizlətmədir; əl ilə baxış paneli hələ yoxdur. Hesab üçün e-poçt/SMS təsdiqi və parol bərpası da aktiv edilməyib. Cloudflare pulsuz planının kvotaları var və 24/7 SLA zəmanəti vermir.
 
