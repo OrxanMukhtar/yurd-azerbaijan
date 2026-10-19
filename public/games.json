@@ -1,0 +1,16 @@
+[
+  {
+    "id": "rayon-kesfi",
+    "title": "Rayonu tanı",
+    "description": "İqtisadi rayonlara görə 5 sürətli sual. Hər düzgün cavab 20 xal gətirir.",
+    "durationLabel": "2 dəqiqə",
+    "questions": [
+      {"id":"q1","prompt":"Şəki-Zaqatala iqtisadi rayonunda yerləşən şəhər hansıdır?","options":["Şəki","Şirvan","Bakı","Naftalan"],"answer":0,"explanation":"Şəki bu iqtisadi rayonun şəhər vahididir."},
+      {"id":"q2","prompt":"Naxçıvan iqtisadi rayonuna daxil olan rayon hansıdır?","options":["Astara","Qax","Babək","Tovuz"],"answer":2,"explanation":"Babək Naxçıvan iqtisadi rayonuna daxildir."},
+      {"id":"q3","prompt":"Quba-Xaçmaz iqtisadi rayonunda yerləşən rayon hansıdır?","options":["Qusar","Ucar","Lerik","Ağsu"],"answer":0,"explanation":"Qusar Quba-Xaçmaz iqtisadi rayonunun rayonlarından biridir."},
+      {"id":"q4","prompt":"Lənkəran-Astara iqtisadi rayonunda olan rayon hansıdır?","options":["Gədəbəy","Masallı","Şabran","Kürdəmir"],"answer":1,"explanation":"Masallı Lənkəran-Astara iqtisadi rayonuna daxildir."},
+      {"id":"q5","prompt":"Şərqi Zəngəzur iqtisadi rayonuna daxil olan rayon hansıdır?","options":["Qəbələ","Biləsuvar","Zəngilan","Göyçay"],"answer":2,"explanation":"Zəngilan Şərqi Zəngəzur iqtisadi rayonuna daxildir."}
+    ]
+  }
+]
+

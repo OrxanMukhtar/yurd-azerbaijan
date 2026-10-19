@@ -1,31 +1,25 @@
-# Yurd — rayon reytinqi
+# Yurd — Azərbaycanın rayonları
 
-Azərbaycanın 66 rayonu və 11 şəhəri üçün hesab əsaslı, dəyişdirilə bilən səsvermə platforması.
+Yurd rayon reytinqini icma fəaliyyəti ilə birləşdirən Azərbaycan dilində MVP-dir. Rayon dəstəyi bir hesaba bir aktiv seçim kimi bağlıdır; seçimi sonradan dəyişmək mümkündür.
 
-Canlı sayt: https://yurd-rayon-reytinqi.allahverdi-muxtarli.workers.dev/  
-GitHub: https://github.com/OrxanMukhtar/yurd-azerbaijan
+## Yerli işə salmaq
 
-## Lokal başladılma
+Node.js 20+ ilə `npm start` işlədin. Sayt `http://127.0.0.1:4173` ünvanında açılır. Yerli məlumatlar `data/store.json` faylında saxlanır; `YURD_STORE_PATH` ilə təcrid olunmuş test faylı seçilə bilər.
 
-Node.js 18+ quraşdırıldıqdan sonra bu qovluqda `npm start` işlədin. Server `http://127.0.0.1:4173` ünvanında açılır. Başqa port üçün `PORT`, hostinqdə isə `HOST=0.0.0.0` təyin edin. İlk başladılmada `data/store.json` yaranır; lokal sınaq hesabları və səslər həmin faylda saxlanılır. Bu fayl Git-ə daxil edilmir.
+## Səsvermə və xəritə
 
-## Səsvermə qaydası
+Hər hesabın bir aktiv rayon səsi var. Seçim sonradan dəyişdirilə və başqa cihazda həmin hesabla görünə bilər. Şifrələr hash-lənir; mövcud qeydiyyat e-poçt/SMS təsdiqi etmir. Rayon sərhədləri geoBoundaries GeoJSON qatından, xəritənin fonu OpenStreetMap-dən yüklənir; hər iki mənbənin atribusiyası saytda göstərilir.
 
-Hər hesabın bir aktiv səsi olur. Yeni rayon seçiləndə əvvəlki səs çıxarılır və yenisi yazılır. Eyni hesabla başqa cihazdan daxil olmaq eyni səs seçimini göstərir. Şifrələr hash-lənir, sessiyalar təhlükəsiz cookie ilə saxlanır. Qeydiyyat e-poçt və telefon təsdiqi etmir; bir insanın əlavə hesablar yaratmasını və ya parol paylaşmasını tam önləmək mümkün deyil. Parol bərpası da e-poçt/SMS yoxlaması əlavə edilənədək mövcud deyil.
+## İcma xüsusiyyətləri
 
-## Xəritə və rayon siyahısı
+- Mövzu sorğularında hər hesab bir dəfə iştirak edir və seçimini dəyişə bilir.
+- Açıq müzakirələr sual, təklif və hekayə formatlarını, rayon etiketi və cavabları dəstəkləyir.
+- “Rayonu tanı” mini oyunu cavabları serverdə yoxlayır, həftəlik ən yaxşı xal və cədvəl göstərir. Oyun xalı rayon reytinqinə təsir etmir.
+- Mövzu, cavab və oyun cəhdlərinə hesab üzrə sürət limiti tətbiq olunur. Eyni məzmuna üç fərqli hesab şikayət göndərdikdə yazı müvəqqəti gizlənir.
 
-`districts.json` rayonların, şəhərlərin və 14 iqtisadi rayonun Azərbaycan dilindəki adlarını saxlayır. Səs sayları ilkin olaraq sıfırdır; demo səsləri yoxdur. Sərhəd qatı geoBoundaries-in GeoJSON faylından (CC BY-SA 3.0), fon xəritəsi OpenStreetMap-dən yüklənir. Xəritə üçün internet bağlantısı lazımdır. GeoJSON sərhəd faylı 2023-cü il buraxılışındandır; yeni inzibati sərhədlər yaranarsa xəritə qatını da yeniləmək lazımdır. Sərhədlərin bir hissəsi rayon adları ilə avtomatik uyğunlaşdırılır; uyğunlaşdırılan sərhədlərin sayı xəritədə göstərilir.
+## Cloudflare Workers
 
-## Cloudflare yayımlanması
+`worker.js` API-ni, `public/` sayt fayllarını, Cloudflare D1 isə hesab və icma məlumatlarını saxlayır. `migrations/0002_community.sql` sorğular, yazılar, cavablar, şikayətlər, sürət limitləri və oyun nəticələri üçün cədvəlləri yaradır. GitHub Actions main branch-ə push olduqda migration-ları tətbiq edib Worker-i deploy edir.
 
-Canlı sayt Cloudflare Workers üzərində işləyir, istifadəçi hesabları və səs məlumatları Cloudflare D1 bazasında saxlanılır. D1 yerləşmə/yurisdiksiya göstərişləri Cloudflare tərəfindən tətbiq olunur; konkret şəhər və ya data center ünvanına zəmanət vermir.
+Məzmun moderasiyası bu MVP-də icma şikayətlərinin sayına əsaslanan avtomatik müvəqqəti gizlətmədir; əl ilə baxış paneli hələ yoxdur. Hesab üçün e-poçt/SMS təsdiqi və parol bərpası da aktiv edilməyib. Cloudflare pulsuz planının kvotaları var və 24/7 SLA zəmanəti vermir.
 
-GitHub Actions `main` budağına hər push zamanı:
-
-1. `migrations/` qovluğundakı D1 dəyişikliklərini uzaq bazaya tətbiq edir.
-2. Worker API-ni və `public/` qovluğundakı saytı Cloudflare-a yayımlayır.
-
-Yayım üçün `CLOUDFLARE_API_TOKEN` və `CLOUDFLARE_ACCOUNT_ID` GitHub Actions repository secrets kimi saxlanılır. Token repoda kod kimi saxlanılmır. Workflow-u əl ilə başlatmaq üçün GitHub reposunda **Actions → Deploy Yurd to Cloudflare → Run workflow** seçin.
-
-Workers və D1-in pulsuz planlarında istifadə limitləri var və 24/7 əlçatanlıq SLA zəmanəti verilmir. İstifadə artdıqca Cloudflare kvotalarını və cari plan şərtlərini yoxlayın.

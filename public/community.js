@@ -1,0 +1,43 @@
+(() => {
+  const el = id => document.getElementById(id);
+  const safe = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let community = { polls: [], posts: [], leaderboard: [], myGameScore: 0 }, games = [], activeGame = null, answers = [], expandedPost = null;
+  const labelTopic = { question: 'SUAL', idea: 'TƏKLİF', story: 'HEKAYƏ' };
+  async function loadCommunity() {
+    try {
+      [community, { games }] = await Promise.all([api('community'), api('games')]);
+      if (state.districts.length && el('postDistrict').options.length <= 1) el('postDistrict').insertAdjacentHTML('beforeend', state.districts.map(d => `<option value="${safe(d.id)}">${safe(d.name)}</option>`).join(''));
+      drawPolls(); drawPosts(); drawLeaders(); drawGameStart();
+    } catch (e) { el('polls').innerHTML = el('posts').innerHTML = '<div class="empty">İcma bölməsinə qoşulmaq olmadı. Yenidən yüklə.</div>'; }
+  }
+  function drawPolls() {
+    el('polls').innerHTML = community.polls.length ? community.polls.map(p => {
+      const total = p.options.reduce((n, o) => n + o.votes, 0), voted = p.myVote !== null && p.myVote !== undefined;
+      return `<article class="poll-item" data-poll="${safe(p.id)}"><div class="poll-category">${safe(p.category)}</div><div class="poll-question">${safe(p.question)}</div><div class="muted-small">${safe(p.description)}</div><div class="poll-options">${p.options.map(o => voted ? `<div class="poll-result"><i class="poll-result-fill" style="width:${total ? Math.round(o.votes*100/total) : 0}%"></i><span><b>${safe(o.label)}${String(p.myVote)===String(o.key)?' · sənin seçimin':''}</b><small>${o.votes} səs</small></span></div>` : `<label class="poll-option"><input type="radio" name="poll-${safe(p.id)}" value="${safe(o.key)}">${safe(o.label)}</label>`).join('')}</div><div class="poll-actions"><span class="muted-small">${total} iştirak · ${voted?'Səsini dəyişə bilərsən':''}</span><button class="primary-btn poll-vote" data-poll-vote="${safe(p.id)}">${voted?'Səsi dəyiş':'Səs ver'}</button></div></article>`;
+    }).join('') : '<div class="empty">Hazırda aktiv sorğu yoxdur.</div>';
+  }
+  function drawPosts() {
+    el('posts').innerHTML = community.posts.length ? community.posts.map(p => `<article class="post-item" data-post="${safe(p.id)}"><div class="post-meta">${safe(labelTopic[p.topic]||'MÜZAKİRƏ')} · ${safe(p.username)}${p.districtId ? ` · ${safe(state.districts.find(d=>d.id===p.districtId)?.name||'')}` : ' · BÜTÜN AZƏRBAYCAN'}</div><div class="post-body">${safe(p.body)}</div><div class="post-controls"><button class="text-btn comments-toggle" data-comments="${safe(p.id)}">${p.commentCount} cavab · ${expandedPost===p.id?'Gizlət':'Cavabları aç'}</button><button class="text-btn report-btn" data-report="post" data-target="${safe(p.id)}">Şikayət et</button></div>${expandedPost===p.id?`<div class="comments" id="comments-${safe(p.id)}"><div class="muted-small">Cavablar yüklənir…</div></div><form class="comment-form" data-comment-form="${safe(p.id)}"><input name="body" maxlength="500" placeholder="Fikrinizi əlavə edin…" required><button class="primary-btn">Göndər</button></form>`:''}</article>`).join('') : '<div class="empty">Hələ müzakirə yoxdur. İlk mövzunu sən aç.</div>';
+    if (expandedPost) loadComments(expandedPost);
+  }
+  async function loadComments(id) { try { const r=await api(`comments?postId=${encodeURIComponent(id)}`), box=el(`comments-${id}`); if(box)box.innerHTML=r.comments.length?r.comments.map(c=>`<div class="comment-item"><b>${safe(c.username)}:</b> ${safe(c.body)} <button class="text-btn report-btn" data-report="comment" data-target="${safe(c.id)}">Şikayət</button></div>`).join(''):'<div class="muted-small">İlk cavabı sən yaz.</div>'; } catch {} }
+  function drawLeaders() { el('myBest').textContent = `Sənin ən yaxşı nəticən: ${community.myGameScore||0}/100`; el('leaders').innerHTML=community.leaderboard.length?community.leaderboard.map(x=>`<div class="leader-row"><span>№${x.rank} ${safe(x.username)}${x.mine?' · sən':''}</span><b>${x.score} xal</b></div>`).join(''):'<div class="muted-small">Bu həftə hələ nəticə yoxdur. İlk oyunçu sən ol!</div>'; }
+  function drawGameStart() { if (!activeGame) el('game').innerHTML='<button id="startGame" class="primary-btn">Oyuna başla&nbsp; →</button>'; }
+  function beginGame() { activeGame=games[0]; answers=[]; drawQuestion(); }
+  function drawQuestion() { const q=activeGame.questions[answers.length]; el('game').innerHTML=`<div class="question-count">SUAL ${answers.length+1} / ${activeGame.questions.length}</div><div class="game-question">${safe(q.prompt)}</div><div class="game-choices">${q.options.map((o,i)=>`<button class="game-choice" data-answer="${i}">${safe(o)}</button>`).join('')}</div>`; }
+  async function chooseAnswer(index) { answers.push(index); if(answers.length<activeGame.questions.length){drawQuestion();return} el('game').innerHTML='<div class="muted-small">Nəticə hesablanır…</div>'; try { const result=await api('game-submit',{method:'POST',body:JSON.stringify({gameId:activeGame.id,answers})}); community.myGameScore=result.bestScore;community.leaderboard=result.leaderboard;drawLeaders();const got=result.explanations.map((x,i)=>`<div>• ${safe(x)}</div>`).join('');el('game').innerHTML=`<div class="game-question">${result.score===100?'Əla nəticə!':`${result.score}/100 xal topladın.`}</div><div class="game-feedback">${got}</div><button id="playAgain" class="primary-btn" style="margin-top:10px">Yenidən oyna</button>`;activeGame=null;}catch(e){el('game').innerHTML=`<div class="game-feedback">${safe(e.message)}</div><button id="startGame" class="primary-btn">Yenidən yoxla</button>`;activeGame=null} }
+  document.addEventListener('click', async e=>{
+    const start=e.target.closest('#startGame'); if(start){if(!state.user){openAuth('login');flash('Oyun xallarını saxlamaq üçün daxil ol.');return}if(games.length)beginGame();return}
+    if(e.target.closest('#playAgain')){beginGame();return}
+    const ans=e.target.closest('[data-answer]');if(ans){chooseAnswer(Number(ans.dataset.answer));return}
+    const pollBtn=e.target.closest('[data-poll-vote]');if(pollBtn){const id=pollBtn.dataset.pollVote, selected=document.querySelector(`input[name="poll-${CSS.escape(id)}"]:checked`), poll=community.polls.find(x=>x.id===id);const key=selected?.value??poll?.myVote;if(key===undefined||key===null){flash('Əvvəlcə cavab seç.');return}try{community=await api('poll-vote',{method:'POST',body:JSON.stringify({pollId:id,optionKey:key})});drawPolls();flash('Səsin qeydə alındı. İstəsən, sonra dəyişə bilərsən.')}catch(err){if(!state.user)openAuth('login');flash(err.message)}return}
+    const toggle=e.target.closest('[data-comments]');if(toggle){expandedPost=expandedPost===toggle.dataset.comments?null:toggle.dataset.comments;drawPosts();return}
+    const report=e.target.closest('[data-report]');if(report){if(!state.user){openAuth('login');flash('Şikayət göndərmək üçün daxil ol.');return}const reason=prompt('Səbəbi seç: spam, abuse, misinformation və ya other','other');if(!reason)return;try{await api('report',{method:'POST',body:JSON.stringify({targetType:report.dataset.report,targetId:report.dataset.target,reason})});flash('Şikayət qəbul edildi.');await loadCommunity()}catch(err){flash(err.message)} }
+  });
+  document.addEventListener('submit',async e=>{
+    if(e.target.id==='postForm'){e.preventDefault();if(!state.user){openAuth('login');flash('Mövzu paylaşmaq üçün daxil ol.');return}const button=e.target.querySelector('button');button.disabled=true;try{community=await api('post',{method:'POST',body:JSON.stringify({topic:el('postTopic').value,districtId:el('postDistrict').value||null,body:el('postBody').value})});el('postBody').value='';drawPosts();flash('Mövzun paylaşıldı.')}catch(err){flash(err.message)}finally{button.disabled=false}}
+    if(e.target.matches('[data-comment-form]')){e.preventDefault();if(!state.user){openAuth('login');flash('Cavab yazmaq üçün daxil ol.');return}const id=e.target.dataset.commentForm,input=e.target.elements.body;try{const r=await api('comment',{method:'POST',body:JSON.stringify({postId:id,body:input.value})});await loadComments(id);input.value='';const p=community.posts.find(x=>x.id===id);if(p)p.commentCount=r.comments.length;drawPosts()}catch(err){flash(err.message)}}
+  });
+  window.addEventListener('yurd:refresh',loadCommunity);loadCommunity();
+})();
+
